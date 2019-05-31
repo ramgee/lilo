@@ -1,0 +1,56 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+spec:
+  serviceName: mariadb
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mariadb
+      tier: db
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        tier: db
+    spec:
+      containers:
+      - image: bitnami/mariadb:latest
+        name: mariadb
+        env:
+        - name: MARIADB_MASTER_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: password
+        - name: MARIADB_REPLICATION_MODE
+          value: slave
+        - name: MARIADB_MASTER_HOST
+          value: master
+        - name: MARIADB_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: replicationid
+        - name: MARIADB_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: replicationpassword
+        ports:
+        - containerPort: 3306
+          name: mariadb
+        volumeMounts:
+        - name: mariadb-data
+          mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+  - metadata:
+      name: mariadb-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi

@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-svc
+  labels:
+    app: mariadb
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3306
+  selector:
+    app: mariadb 
+    tier: db
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+      tier: db
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        tier: db
+    spec:
+      containers:
+      - image: bitnami/mariadb:latest
+        name: mariadb
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: password
+        - name: MARIADB_REPLICATION_MODE
+          value: master
+        - name: MARIADB_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: replicationid
+        - name: MARIADB_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: replicationpassword
+        - name: MARIADB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: id
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-pass
+              key: pass
+        - name: MARIADB_DATABASE
+          value: metaportal
+        ports:
+        - containerPort: 3306
+          name: mariadb
+        volumeMounts:
+        - name: mariadb-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-data
+        persistentVolumeClaim:
+          claimName: mariadb-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb-pvc
+  labels:
+    app: mariadb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

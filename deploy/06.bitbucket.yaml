@@ -1,0 +1,36 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bitbucket
+  namespace: deploy
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bitbucket-server
+    spec:
+      containers:
+        - name: bitbucket 
+          image: atlassian/bitbucket-server:latest
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: git-data
+              mountPath: /var/atlassian/ 
+      volumes:
+        - name: git-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitbucket-svc
+  namespace: deploy
+spec:
+  selector: 
+    app: bitbucket-server
+  type: LoadBalancer  
+  ports:
+    - port: 8080
+      name: http

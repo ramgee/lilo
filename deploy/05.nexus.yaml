@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: devops 
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nexus-server
+    spec:
+      containers:
+        - name: nexus
+          image: sonatype/nexus3:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+            - containerPort: 5000 
+          volumeMounts:
+            - name: nexus-data
+              mountPath: /nexus-data
+      volumes:
+        - name: nexus-data
+          # persistentVolumeClaim:
+          #  claimName: nexus-pvc
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-svc
+  namespace: devops
+spec:
+  type: LoadBalancer 
+  selector: 
+    app: nexus-server
+  ports:
+    - port: 80
+      targetPort: 8081
+      protocol: TCP
+      name: http

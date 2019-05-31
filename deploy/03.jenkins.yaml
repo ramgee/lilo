@@ -1,0 +1,48 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  namespace: devops
+  name: jenkins
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      serviceAccountName: jenkins
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts
+          volumeMounts:
+          - name: jenkins-home
+            mountPath: /var/jenkins_home
+          ports:
+          - containerPort: 8080
+          - containerPort: 50000
+      volumes:
+      - name: jenkins-home
+        persistentVolumeClaim:
+          claimName: jenkins-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-svc
+  namespace: devops
+  labels:
+    app: jenkins
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 50000
+    protocol: TCP
+    name: slave
+  selector:
+    app: jenkins
